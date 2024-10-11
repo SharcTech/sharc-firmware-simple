@@ -1,0 +1,83 @@
+# Copyright (C) 2022, MRIIOT LLC
+# All rights reserved.
+
+
+from machine import Timer
+from machine import Pin
+
+
+class LED:
+	def __init__(self, **kwargs):
+		# internals
+		self._pin_blu = Pin(14, Pin.OUT)
+		self._pin_grn = Pin(32, Pin.OUT)
+		self._pin_red = Pin(33, Pin.OUT)
+		self._tmr_blink = None
+		self._tmr_on = False
+		self._current_color = None
+		self._last_color = None
+
+	def blue(self):
+		self._pin_blu.value(1)
+		self._pin_grn.value(0)
+		self._pin_red.value(0)
+		self._current_color = self.blue
+
+	def green(self):
+		self._pin_blu.value(0)
+		self._pin_grn.value(1)
+		self._pin_red.value(0)
+		self._current_color = self.green
+
+	def red(self):
+		self._pin_blu.value(0)
+		self._pin_grn.value(0)
+		self._pin_red.value(1)
+		self._current_color = self.red
+
+	def yellow(self):
+		self._pin_blu.value(0)
+		self._pin_grn.value(1)
+		self._pin_red.value(1)
+		self._current_color = self.yellow
+
+	def cyan(self):
+		self._pin_blu.value(1)
+		self._pin_grn.value(1)
+		self._pin_red.value(0)
+		self._current_color = self.cyan
+
+	def magenta(self):
+		self._pin_blu.value(1)
+		self._pin_grn.value(0)
+		self._pin_red.value(1)
+		self._current_color = self.magenta
+
+	def white(self):
+		self._pin_blu.value(1)
+		self._pin_grn.value(1)
+		self._pin_red.value(1)
+		self._current_color = self.white
+
+	def off(self):
+		self._pin_blu.value(0)
+		self._pin_grn.value(0)
+		self._pin_red.value(0)
+		self._current_color = None
+
+	def _cb_blink(self, timer):
+		if self._current_color:
+			self._last_color = self._current_color
+			self.off()
+		elif self._last_color:
+			self._last_color()
+
+	def blink(self, state, period=500):
+		self._tmr_on = state
+		if self._tmr_blink and not state:
+			self._tmr_blink.deinit()
+		elif self._tmr_blink and state:
+			self._tmr_blink.init(mode=Timer.PERIODIC, period=period, callback=self._cb_blink)
+		elif not self._tmr_blink and state:
+			self._tmr_blink = Timer(0)
+			self._tmr_blink.init(mode=Timer.PERIODIC, period=period, callback=self._cb_blink)
