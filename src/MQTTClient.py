@@ -17,21 +17,23 @@ class MQTTClient:
         self._broker_ping_s: int = 5
         self._command_topic: str = None
         self._event_topic: str = None
+        self._message_handler = None
 
     def connect(self, client_id, server, port, username, password, keepalive,
-                command_topic="sharky/command", event_topic="sharky/event"):
+                command_topic="sharky/command", event_topic="sharky/event", message_handler=None):
         self._command_topic = command_topic
         self._event_topic = event_topic
+        self._message_handler = message_handler
         self._mqtt = RobustMQTTClient(client_id=client_id, server=server, port=port, user=username, password=password, keepalive=keepalive, ssl=None, ssl_params=dict(), socket_timeout=5, message_timeout=10)
         self._mqtt.set_callback(f=self._on_msg)
         self._mqtt.set_last_will(
-            topic=event_topic,
-            msg=json.dumps({"message": "goodbye"}).encode(),
+            topic="{}/{}".format(event_topic, "online"),
+            msg=json.dumps({"value": False}).encode(),
             retain=True, qos=0)
         connected = self._mqtt.connect(clean_session=True)
         if connected is not None:
             print('mqtt connection OK')
-            self.publish_json(event_topic, {"message": "hello"})
+            self.publish_json("{}/{}".format(event_topic, "online"), {"value": True})
             self.subscribe(topic=command_topic)
             self._advance_ping()
         else:
@@ -40,6 +42,12 @@ class MQTTClient:
 
     def _on_msg(self, topic, msg, retained, duplicate):
         print(f'mqtt on_msg t:{topic.decode()}, m:{msg.decode()}, r:{retained}, dup:{duplicate}')
+        if self._message_handler:
+            self._message_handler(
+                topic=topic.decode(),
+                message=msg.decode(),
+                retained=retained,
+                duplicate=duplicate)
 
     def publish_json(self, topic, msg, qos: int = 0, retain: bool = False) -> bool:
         self._mqtt.publish(topic=topic.encode(), msg=json.dumps(msg).encode(), retain=retain, qos=qos)
@@ -59,8 +67,6 @@ class MQTTClient:
 
         # manage any mqtt transport issues
         if self._mqtt.is_conn_issue():
-            # print('mqtt: has issue')
-            # first time on transport issue before successful reconnect
             if self._known_connection_issue is False:
                 self._known_connection_issue = True
 
@@ -69,8 +75,9 @@ class MQTTClient:
 
             # reconnected
             if reconnected is not None:
+                print('mqtt reconnection OK')
                 self._known_connection_issue = False
-                self.publish_json(self._event_topic, {"message": "hello"})
+                self.publish_json("{}/{}".format(self._event_topic, "online"), {"value": True})
                 # subscribe, we don't know if initial connection succeeded to be able to resubscribe
                 self.subscribe(topic=self._command_topic)
                 self._advance_ping()

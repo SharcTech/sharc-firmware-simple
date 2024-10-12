@@ -11,6 +11,6 @@ gc.enable()
 
 print('booting SHARC...')
 # allow some time before starting main
-utime.sleep(5)
+utime.sleep(2)
 
 gc.collect()
