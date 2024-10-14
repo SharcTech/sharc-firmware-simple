@@ -12,7 +12,7 @@ from src.I2CBus import I2CBus
 from src.AnalogInput import AnalogInput
 
 _wlan_ssid = "CC"
-_wlan_password = "pass"
+_wlan_password = "haptixgames"
 _mqtt_server = "sharc.tech"
 _mqtt_port = 1883
 _mqtt_username = None
@@ -49,14 +49,9 @@ def _mqtt_message_handler(topic, message, retained, duplicate):
         print ("msg received: {}".format(message))
         if message == "reset":
                 machine.reset()
-        if message == "pnp":
-                _mqtt.publish_json("{}/{}".format(_event_topic, "pnp"), {"value": _last_pnp_value})
-        if message == "npn":
-                _mqtt.publish_json("{}/{}".format(_event_topic, "npn"), {"value": _last_npn_value})
-        if message == "0-10V":
-                _mqtt.publish_json("{}/{}".format(_event_topic, "0-10V"), {"value": _last_010_value})
-        if message == "4-20mA":
-                _mqtt.publish_json("{}/{}".format(_event_topic, "4-20mA"), {"value": _last_420_value})
+        if message == "io":
+                global _force_read_io
+                _force_read_io = True
 
 _mqtt = MQTTClient()
 _mqtt.connect(client_id=_lan.mac(),
@@ -73,32 +68,57 @@ _pnp = DigitalInput("pnp", 36)
 _npn = DigitalInput("npn", 39)
 _i2c = I2CBus()
 _analog = AnalogInput(_i2c)
-_last_pnp_value = 0
-_last_npn_value = 0
-_last_010_value = 0
-_last_420_value = 0
+_force_read_io = False
 
 while _is_running is True:
-        pnp_value = _pnp.read()
-        npn_value = _npn.read()
-        analog_value = _analog.read()
+        pnp_value = _pnp.read(_force_read_io)
+        npn_value = _npn.read(_force_read_io)
+        volts_value = _analog.read(_force_read_io)
+        amps_value = _analog.read(_force_read_io)
+        _force_read_io = False
+        _io_changed = False
 
         if pnp_value[1] is True:
-                _last_pnp_value = pnp_value[2]
-                _mqtt.publish_json("{}/{}".format(_event_topic, pnp_value[0]), {"value": pnp_value[2]})
+                _io_changed = True
+                _mqtt.publish_json("{}/{}".format(_event_topic, pnp_value[0]),
+                                   {
+                                                "value": pnp_value[2],
+                                                "delta": pnp_value[3]
+                                        })
 
         if npn_value[1] is True:
-                _last_npn_value = npn_value[2]
-                _mqtt.publish_json("{}/{}".format(_event_topic, npn_value[0]), {"value": npn_value[2]})
+                _io_changed = True
+                _mqtt.publish_json("{}/{}".format(_event_topic, npn_value[0]),
+                                   {
+                                                "value": npn_value[2],
+                                                "delta": npn_value[3]
+                                        })
 
-        if analog_value[1] is True:
-                if analog_value[0] == "0-10V":
-                        _last_010_value = analog_value[2]
-                if analog_value[0] == "4-20mA":
-                        _last_420_value = analog_value[2]
-                _mqtt.publish_json("{}/{}".format(_event_topic, analog_value[0]), {"value": analog_value[2]})
+        if volts_value[1] is True:
+                _io_changed = True
+                _mqtt.publish_json("{}/{}".format(_event_topic, volts_value[0]),
+                                   {
+                                                "value": volts_value[2],
+                                                "delta": volts_value[3]
+                                        })
 
-        _mqtt.update()
+        if amps_value[1] is True:
+                _io_changed = True
+                _mqtt.publish_json("{}/{}".format(_event_topic, amps_value[0]),
+                                   {
+                                                "value": amps_value[2],
+                                                "delta": amps_value[3]
+                                        })
+
+        is_connected = _mqtt.update()
+
+        if is_connected is True:
+            _led.green()
+        else:
+            _led.red()
+
+        if _io_changed is True:
+            _led.blink(True, period=500, once=False)
 
 _mqtt.disconnect()
 _wlan.disconnect()

@@ -60,7 +60,7 @@ class MQTTClient:
     def update(self) -> None:
         # no processing if time between intervals has not passed
         if abs(time.ticks_diff(time.ticks_ms(), self._last_update)) < self._interval_ms:
-            return
+            return not self._mqtt.is_conn_issue()
 
         # keep track of last time this function was allowed to execute
         self._last_update = time.ticks_ms()
@@ -94,6 +94,8 @@ class MQTTClient:
 
             # process mqtt queue (unsent messages capabilities)
             self._mqtt.send_queue()
+
+        return not self._mqtt.is_conn_issue()
 
     def _advance_ping(self) -> None:
         self._next_ping_time_s = time.time() + self._broker_ping_s
