@@ -2,6 +2,7 @@
 # All rights reserved.
 
 import machine
+import utime as time
 from micropython import const
 from src.LED import LED
 from src.LAN import LAN
@@ -11,8 +12,8 @@ from src.DigitalInput import DigitalInput
 from src.I2CBus import I2CBus
 from src.AnalogInput import AnalogInput
 
-_wlan_ssid = "CC"
-_wlan_password = "haptixgames"
+_wlan_ssid = "yourssid"
+_wlan_password = "yourpassword"
 _mqtt_server = "sharc.tech"
 _mqtt_port = 1883
 _mqtt_username = None
@@ -23,6 +24,7 @@ _command_topic = const("sharky/command")
 _event_topic = const("sharky/event")
 _ip_zero = const("0.0.0.0")
 _is_running = True
+_is_connected = False
 
 _led = LED()
 _led.white()
@@ -110,15 +112,16 @@ while _is_running is True:
                                                 "delta": amps_value[3]
                                         })
 
-        is_connected = _mqtt.update()
+        _is_connected = _mqtt.update()
 
-        if is_connected is True:
+        if _is_connected is True:
             _led.green()
         else:
             _led.red()
 
         if _io_changed is True:
-            _led.blink(True, period=500, once=False)
+            _led.off()
+            time.sleep_ms(20)
 
 _mqtt.disconnect()
 _wlan.disconnect()

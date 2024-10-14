@@ -81,22 +81,18 @@ class LED:
 		self._current_color = None
 
 	def _cb_blink(self, timer):
-		if self._tmr_oneshot is True:
-			self._tmr_on = False
-			self._tmr_blink.deinit()
 		if self._current_color:
 			self._last_color = self._current_color
 			self.off()
 		elif self._last_color:
 			self._last_color()
 
-	def blink(self, state, period=500, once=False):
+	def blink(self, state, period=500):
 		self._tmr_on = state
-		self._tmr_oneshot = True if once is True else False
 		if self._tmr_blink and not state:
 			self._tmr_blink.deinit()
 		elif self._tmr_blink and state:
-			self._tmr_blink.init(mode=Timer.ONE_SHOT if once is True else Timer.PERIODIC, period=period, callback=self._cb_blink)
+			self._tmr_blink.init(mode=Timer.PERIODIC, period=period, callback=self._cb_blink)
 		elif not self._tmr_blink and state:
 			self._tmr_blink = Timer(0)
-			self._tmr_blink.init(mode=Timer.ONE_SHOT if once is True else Timer.PERIODIC, period=period, callback=self._cb_blink)
+			self._tmr_blink.init(mode=Timer.PERIODIC, period=period, callback=self._cb_blink)
