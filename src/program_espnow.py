@@ -10,6 +10,9 @@ from src.I2CBus import I2CBus
 from src.AnalogInput import AnalogInput
 
 _is_running = True
+_config = {
+    "gateway_mac": "FF:FF:FF:FF:FF:FF"
+}
 
 _led = LED()
 _led.white()
@@ -32,6 +35,11 @@ def _esp_message_handler(host, message):
         if messages[2] == "PING":
             _now.send(host, "|EVT|ACK|{}".format(messages[0]))
             # _now.broadcast("|EVT|ACK|{}".format(messages[0]))
+        if messages[2] == "CFG":
+            global _config
+            _config[messages[3]] = messages[4]
+            _now.send(host, "|EVT|ACK|{}".format(messages[0]))
+
 
 _now = NOW(message_handler=_esp_message_handler)
 _pnp = DigitalInput("pnp", 36)
@@ -40,7 +48,7 @@ _i2c = I2CBus()
 _analog = AnalogInput(_i2c)
 _force_read_io = False
 _last_send = time.time()
-_now.broadcast("|EVT|AVAIL|1")
+_now.send(_config["gateway_mac"], "|EVT|AVAIL|1")
 
 while _is_running is True:
         pnp_value = _pnp.read(_force_read_io)
@@ -52,19 +60,19 @@ while _is_running is True:
 
         if pnp_value[1] is True:
             _io_changed = True
-            _now.broadcast("|EVT|IO|{}|{}|{}".format(pnp_value[0], pnp_value[2], pnp_value[3]))
+            _now.send(_config["gateway_mac"], "|EVT|IO|{}|{}|{}".format(pnp_value[0], pnp_value[2], pnp_value[3]))
 
         if npn_value[1] is True:
             _io_changed = True
-            _now.broadcast("|EVT|IO|{}|{}|{}".format(npn_value[0], npn_value[2], npn_value[3]))
+            _now.send(_config["gateway_mac"], "|EVT|IO|{}|{}|{}".format(npn_value[0], npn_value[2], npn_value[3]))
 
         if volts_value[1] is True:
             _io_changed = True
-            _now.broadcast("|EVT|IO|{}|{}|{}".format(volts_value[0], volts_value[2], volts_value[3]))
+            _now.send(_config["gateway_mac"], "|EVT|IO|{}|{}|{}".format(volts_value[0], volts_value[2], volts_value[3]))
 
         if amps_value[1] is True:
             _io_changed = True
-            _now.broadcast("|EVT|IO{}|{}|{}".format(amps_value[0], amps_value[2], amps_value[3]))
+            _now.send(_config["gateway_mac"], "|EVT|IO{}|{}|{}".format(amps_value[0], amps_value[2], amps_value[3]))
 
         if _io_changed is True:
             _led.off()
@@ -74,7 +82,7 @@ while _is_running is True:
 
         if abs(time.ticks_diff(time.ticks_ms(), _last_send)) > 30000:
             _last_send = time.ticks_ms()
-            _now.broadcast("|EVT|STAT|{}".format(_now.stats()))
+            _now.send(_config["gateway_mac"], "|EVT|STAT|{}".format(_now.stats()))
 
-_now.broadcast("|EVT|AVAIL|0")
+_now.send(_config["gateway_mac"], "|EVT|AVAIL|0")
 machine.reset()
