@@ -25,11 +25,15 @@ class NOW:
         except:
             pass
         self._sequence = self._sequence + 1
-        return self._now.send(peer, '|{}{}'.format(self._sequence, msg), sync)
+        message = b'|%s%s' % (self._sequence, msg)
+        print(f"sending to: {peer}, msg: {message}")
+        return self._now.send(peer, message, sync)
 
     def broadcast(self, msg, sync=True):
         self._sequence = self._sequence + 1
-        return self._now.send(self._broadcast_address, '|{}{}'.format(self._sequence, msg), sync)
+        message = b'|%s%s' % (self._sequence, msg)
+        print(f"sending to: {self._broadcast_address}, msg: {message}")
+        return self._now.send(self._broadcast_address, message, sync)
 
     def update(self):
         host, msg = self._now.recv(0)
