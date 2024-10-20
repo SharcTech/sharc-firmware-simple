@@ -25,16 +25,16 @@ def _esp_message_handler(host, message):
         return
 
     if messages[1] == "CMD":
-        if messages[2] == "RST":
-            _is_running = False
-            _now.send(host, "|EVT|ACK|{}".format(messages[0]))
-        if messages[2] == "IO":
-            global _force_read_io
-            _force_read_io = True
-            _now.send(host, "|EVT|ACK|{}".format(messages[0]))
-        if messages[2] == "PING":
-            _now.send(host, "|EVT|ACK|{}".format(messages[0]))
-            # _now.broadcast("|EVT|ACK|{}".format(messages[0]))
+        if messages[2] == "ACT":
+            if messages[3] == "RST":
+                _is_running = False
+                _now.send(host, "|EVT|ACK|{}".format(messages[0]))
+            if messages[3] == "IO":
+                global _force_read_io
+                _force_read_io = True
+                _now.send(host, "|EVT|ACK|{}".format(messages[0]))
+            if messages[3] == "PING":
+                _now.send(host, "|EVT|ACK|{}".format(messages[0]))
         if messages[2] == "CFG":
             global _config
             _config[messages[3]] = messages[4]
