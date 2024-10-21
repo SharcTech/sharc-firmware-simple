@@ -2,6 +2,7 @@
 # All rights reserved.
 
 import machine
+import struct
 import utime as time
 from src.NOW import NOW
 from src.LED import LED
@@ -18,7 +19,7 @@ _led = LED()
 _led.white()
 
 def _esp_message_handler(host, message):
-    messages = [x for x in message.decode('utf-8').split("|") if x]
+    messages = [x for x in message.split("|") if x]
     print(messages)
 
     if len(messages) == 1:
@@ -61,19 +62,25 @@ while _is_running is True:
 
         if pnp_value[1] is True:
             _io_changed = True
-            _now.send(_config["p2p.gateway"], "|EVT|IO|{}|{}|{}".format(pnp_value[0], pnp_value[2], pnp_value[3]))
+            msg = "|EVT|IO|%s|%d|%d" % (pnp_value[0], pnp_value[2], pnp_value[3])
+            _now.send(_config["p2p.gateway"], msg.encode())
 
         if npn_value[1] is True:
             _io_changed = True
-            _now.send(_config["p2p.gateway"], "|EVT|IO|{}|{}|{}".format(npn_value[0], npn_value[2], npn_value[3]))
+            msg = "|EVT|IO|%s|%d|%d" % (npn_value[0], npn_value[2], npn_value[3])
+            _now.send(_config["p2p.gateway"], msg.encode())
 
         if volts_value[1] is True:
             _io_changed = True
-            _now.send(_config["p2p.gateway"], "|EVT|IO|{}|{}|{}".format(volts_value[0], volts_value[2], volts_value[3]))
+            value = (volts_value[2] * 0.000384615 - 0) / (10 - 0) * (10 - 0) + 0
+            msg = "|EVT|IO|%s|%f|%d" % (volts_value[0], value, volts_value[3])
+            _now.send(_config["p2p.gateway"], msg.encode())
 
         if amps_value[1] is True:
             _io_changed = True
-            _now.send(_config["p2p.gateway"], "|EVT|IO{}|{}|{}".format(amps_value[0], amps_value[2], amps_value[3]))
+            value = (amps_value[2] * 0.00075 - 4) / (20 - 4) * (20 - 4) + 4
+            msg = "|EVT|IO|%s|%f|%d" % (amps_value[0], value, amps_value[3])
+            _now.send(_config["p2p.gateway"], msg.encode())
 
         if _io_changed is True:
             _led.off()

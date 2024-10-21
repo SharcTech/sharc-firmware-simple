@@ -123,22 +123,18 @@ class AnalogInput:
             for ch_key, ch_val in self._channels.items():
                 ch_val['first'] = True
 
-        if not self._is_busy():
+        while self._is_busy():
+            pass
 
-            changed, channel_name, value = self._read_conversion()
-            self._next_channel()
-            self._request_conversion()
+        channel_id = self._current_channel      # cache channel id
+        changed, channel_name, value = self._read_conversion()
+        self._next_channel()                    # change channel
+        self._request_conversion()
+        if changed is True:
+            self._channels[channel_id]['change_delta'] = abs(time.ticks_diff(time.ticks_ms(), self._channels[channel_id]['change_ts']))
+            self._channels[channel_id]['change_ts'] = time.ticks_ms()
 
-            if changed is True:
-                self._channels[self._current_channel]['change_delta'] = abs(time.ticks_diff(time.ticks_ms(), self._channels[self._current_channel]['change_ts']))
-                self._channels[self._current_channel]['change_ts'] = time.ticks_ms()
-
-            return channel_name, changed, value, self._channels[self._current_channel]['change_delta'] if changed is True else 0
-
-        return self._channels[self._current_channel]['name'], \
-               False, \
-               self._channels[self._current_channel]['current'], \
-               0
+        return channel_name, changed, value, self._channels[channel_id]['change_delta'] if changed is True else 0
 
     def _is_busy(self):
         return self._i2c.read_word(_I2C_ADDR, _I2C_REG_CONF) >> 15 == 0

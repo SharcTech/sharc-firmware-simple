@@ -17,7 +17,7 @@ class NOW:
 
     def _message_handler(self, host, msg):
         if self._external_message_handler:
-            self._external_message_handler(host, msg)
+            self._external_message_handler(host, msg.decode('utf-8'))
 
     def send(self, peer, msg, sync=True):
         try:
@@ -25,20 +25,20 @@ class NOW:
         except:
             pass
         self._sequence = self._sequence + 1
-        message = b'|%s%s' % (self._sequence, msg)
+        message = ('|%s' % self._sequence).encode() + msg
         print(f"sending to: {peer}, msg: {message}")
         return self._now.send(peer, message, sync)
 
     def broadcast(self, msg, sync=True):
         self._sequence = self._sequence + 1
-        message = b'|%s%s' % (self._sequence, msg)
+        message = ('|%s' % self._sequence).encode() + msg
         print(f"sending to: {self._broadcast_address}, msg: {message}")
         return self._now.send(self._broadcast_address, message, sync)
 
     def update(self):
         host, msg = self._now.recv(0)
         if msg:
-            print("msg received from {}: {}".format(host, msg))
+            print("receiving from {}: {}".format(host, msg))
             self._message_handler(host, msg)
 
     def stats(self):
