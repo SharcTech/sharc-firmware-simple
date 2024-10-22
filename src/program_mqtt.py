@@ -14,7 +14,7 @@ from src.DigitalInput import DigitalInput
 from src.I2CBus import I2CBus
 from src.AnalogInput import AnalogInput
 
-_USE_ESP_NOW = True
+_USE_ESP_NOW = False
 _wlan_ssid = "yourssid"
 _wlan_password = "yourpassword"
 _mqtt_server = "sharc.tech"

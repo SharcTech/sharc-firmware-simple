@@ -4,6 +4,7 @@
 import machine
 import struct
 import utime as time
+import os
 from src.NOW import NOW
 from src.LED import LED
 from src.DigitalInput import DigitalInput
@@ -12,7 +13,9 @@ from src.AnalogInput import AnalogInput
 
 _is_running = True
 _config = {
-    "p2p.gateway": b'\xff\xff\xff\xff\xff\xff'
+    "p2p.gateway": b'\xff\xff\xff\xff\xff\xff',
+    "sensor.s0.mode": "count",
+    "sensor.s1.mode": "count"
 }
 
 _led = LED()
@@ -35,6 +38,12 @@ def _esp_message_handler(host, message):
                 global _force_read_io
                 _force_read_io = True
                 _now.send(host, "|EVT|ACK|{}".format(messages[0]))
+            if messages[3] == "COUNTER":
+                global _pnp
+                global _npn
+                _pnp.set_counter(messages[4])
+                _npn.set_counter(messages[4])
+                _now.send(host, "|EVT|ACK|{}".format(messages[0]))
             if messages[3] == "PING":
                 _now.send(host, "|EVT|ACK|{}".format(messages[0]))
         if messages[2] == "CFG":
@@ -44,11 +53,11 @@ def _esp_message_handler(host, message):
 
 
 _now = NOW(message_handler=_esp_message_handler)
-_pnp = DigitalInput("pnp", 36)
-_npn = DigitalInput("npn", 39)
+_pnp = DigitalInput("pnp", 36, _config["sensor.s0.mode"])
+_npn = DigitalInput("npn", 39, _config["sensor.s1.mode"])
 _i2c = I2CBus()
 _analog = AnalogInput(_i2c)
-_force_read_io = False
+_force_read_io = True
 _last_send = time.time()
 _now.send(_config["p2p.gateway"], "|EVT|AVAIL|1")
 
@@ -85,6 +94,7 @@ while _is_running is True:
         if _io_changed is True:
             _led.off()
             time.sleep_ms(10)
+            _led.white()
 
         _now.update()
 
