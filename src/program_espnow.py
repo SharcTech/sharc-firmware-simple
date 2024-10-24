@@ -19,7 +19,7 @@ _config = {
 }
 
 _led = LED()
-_led.white()
+_led.green()
 
 def _esp_message_handler(host, message):
     messages = [x for x in message.split("|") if x]
@@ -60,6 +60,7 @@ _analog = AnalogInput(_i2c)
 _force_read_io = True
 _last_send = time.time()
 _now.send(_config["p2p.gateway"], "|EVT|AVAIL|1")
+_led.white()
 
 while _is_running is True:
         pnp_value = _pnp.read(_force_read_io)
@@ -102,5 +103,6 @@ while _is_running is True:
             _last_send = time.ticks_ms()
             _now.send(_config["p2p.gateway"], "|EVT|STAT|{}".format(_now.stats()))
 
+_led.red()
 _now.send(_config["p2p.gateway"], "|EVT|AVAIL|0")
 machine.reset()

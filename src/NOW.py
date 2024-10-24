@@ -7,7 +7,9 @@ class NOW:
         sta = network.WLAN(network.STA_IF)
         sta.active(True)
         sta.disconnect()
+        sta.config(pm=sta.PM_PERFORMANCE)
         sta.config(channel=channel)
+        sta.config(protocol=network.MODE_LR)
         self._sequence = 0
         self._broadcast_address = b'\xff\xff\xff\xff\xff\xff'
         self._external_message_handler = message_handler
